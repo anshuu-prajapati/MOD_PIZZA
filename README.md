@@ -8,6 +8,14 @@ toward the counter or the seating.
 It runs on recorded video, draws a live debug overlay while it processes, and
 prints a full analytics summary in the terminal when it finishes.
 
+![Front Entrance camera with live detection overlay](images/overlay_example_front_entrance.jpg)
+
+*Front Entrance, 18:40. Green boxes are tracked people with anonymous IDs, the
+red dot under each is the floor point used for zone tests, yellow lines are
+recent movement paths. Coloured polygons are the configured zones with their
+live counts; the red line across the doorway is the entry counter. The HUD shows
+people in view, zone occupancy, entries so far, queue length and busy status.*
+
 ## Privacy stance
 
 This is **anonymous** analytics. The system deliberately does **not** implement:
@@ -231,6 +239,28 @@ python main.py --check-zones          # renders the zones onto a real frame
 python tools/zone_editor.py pos --at 1200   # click new shapes onto the frame
 ```
 
+This is what the shipped zone config looks like on each camera. Copies live in
+`images/`.
+
+**Front Entrance** — entrance (orange) and the door counting line with its IN
+arrow, the order queue by the menu board (red), the counter walkway (blue), four
+seating zones and the open dining floor (grey).
+
+![Front Entrance zone configuration](images/zones_front_entrance.jpg)
+
+**Beverage Station** — online pickup, the beverage station itself (pink), the
+long bar table, the communal high table, the right window seating and the
+south-east corner. The shaded strip on the left is the staff mask behind the
+pickup counter.
+
+![Beverage Station zone configuration](images/zones_beverage_station.jpg)
+
+**POS** — almost everything here is staff floor, so almost everything is masked
+(the shaded areas). Only two zones are kept: the customer strip along the make
+line and the spot at the register.
+
+![POS zone configuration](images/zones_pos.jpg)
+
 In the editor: left-click adds a point, `Enter` finishes a shape, `t` cycles the
 zone type, `l` toggles line mode, `u` undoes, `d` drops the last shape, `s`
 appends everything to the camera's JSON, `q` quits.
@@ -296,10 +326,22 @@ whole thing works before committing to a full run.
 - a HUD with the clock, people in view, occupancy, entries so far, queue length,
   and the busy/quiet status
 
-Example frames from each camera are saved in `.ai/artifacts/overlay_example_*.jpg`.
-The POS one is worth a look: the MOD staff at the make line and the register are
-drawn grey because they fall inside a staff mask, while the customer standing at
-the register gets a green box and a movement trail.
+Example frames from each camera are in `images/` (and are regenerated into
+`.ai/artifacts/overlay_example_*.jpg` on demand).
+
+The POS frame is the one worth studying. The MOD employees — at the make line,
+at the register and cutting pizza at the bottom left — are drawn **grey** and
+excluded, because their floor point falls inside a staff mask. The customer
+standing at the register gets a green box, an ID and a movement trail. That is
+the staff-vs-customer separation working, and it is purely spatial: no face, no
+uniform detection, no identity.
+
+![POS camera with staff masked out](images/overlay_example_pos.jpg)
+
+The Beverage Station frame shows the same overlay on the drinks and pickup side
+of the room.
+
+![Beverage Station camera with live detection overlay](images/overlay_example_beverage_station.jpg)
 
 **In the terminal when it finishes** — one section per question. This is the
 real output from the shipped config on the supplied hour of footage
