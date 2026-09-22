@@ -1,0 +1,79 @@
+{
+  "camera": "front_entrance",
+  "frame_size": [1920, 1134],
+  "_comment": "Pixel coordinates in the source frame. Redraw with: python tools/zone_editor.py front_entrance. Check with: python main.py --check-zones",
+  "lines": [
+    {
+      "id": "front_door",
+      "label": "Front door",
+      "points": [[706, 356], [972, 274]],
+      "in_side": "right",
+      "_note": "in_side = which side of the A->B vector counts as walking INTO the store. The line must span the whole walkable corridor between the left high-tops and the north booth: people coming in hug the left, so a short line misses them."
+    }
+  ],
+  "polygons": [
+    {
+      "id": "entrance_front",
+      "type": "entrance",
+      "label": "Front entrance",
+      "points": [[746, 246], [818, 112], [998, 102], [996, 194], [942, 254], [776, 344]],
+      "occupancy": true
+    },
+    {
+      "id": "queue_order",
+      "type": "queue",
+      "label": "Order queue / menu",
+      "points": [[1530, 300], [1900, 265], [1910, 790], [1600, 745], [1505, 470]],
+      "occupancy": true
+    },
+    {
+      "id": "counter_front",
+      "type": "counter",
+      "label": "Counter walkway",
+      "points": [[1650, 437], [1400, 530], [1150, 730], [900, 900], [700, 1020], [520, 1134],
+                 [320, 1134], [600, 905], [850, 762], [1080, 592], [1330, 442], [1560, 348]],
+      "occupancy": true
+    },
+    {
+      "id": "table_left_window",
+      "type": "table",
+      "label": "Left window seating",
+      "_note": "the window bar and the high-tops read as one block from this angle; keeping them separate only produced phantom moves between two overlapping polygons",
+      "points": [[0, 344], [262, 238], [700, 226], [706, 452], [470, 690], [126, 864], [0, 714]],
+      "seats": 16,
+      "occupancy": true
+    },
+    {
+      "id": "table_center",
+      "type": "table",
+      "label": "Centre tables",
+      "points": [[622, 456], [1288, 408], [1128, 624], [648, 712]],
+      "seats": 10,
+      "occupancy": true
+    },
+    {
+      "id": "table_booth_north",
+      "type": "table",
+      "label": "Booth north",
+      "points": [[962, 214], [1268, 202], [1256, 430], [968, 436]],
+      "seats": 4,
+      "occupancy": true
+    },
+    {
+      "id": "table_booth_east",
+      "type": "table",
+      "label": "Booth east",
+      "points": [[1276, 322], [1566, 296], [1584, 596], [1288, 606]],
+      "seats": 6,
+      "occupancy": true
+    },
+    {
+      "id": "floor_dining",
+      "type": "other",
+      "label": "Dining floor",
+      "points": [[132, 872], [500, 700], [652, 858], [470, 1058], [180, 1134], [20, 1134], [0, 1000]],
+      "occupancy": true
+    }
+  ],
+  "masks": []
+}

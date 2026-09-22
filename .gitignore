@@ -1,0 +1,19 @@
+# AI-native working folders - never push these
+.ai/
+.claude/
+.gemini/
+.codex/
+
+# Model weights (downloaded on first run)
+models/*.pt
+
+# Source footage
+Data/*.mp4
+Data/*.avi
+Data/*.mkv
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/

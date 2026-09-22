@@ -1,0 +1,68 @@
+# MOD Pizza - CCTV Analytics MVP
+# Everything the pipeline needs to run lives here. No code changes required
+# to point at different footage, change sampling rate, or retune thresholds.
+
+model:
+  weights: models/yolo11m.pt   # auto-downloads on first run if missing
+  device: auto                 # auto | cpu | 0  (0 = first CUDA GPU)
+  imgsz: 1280                  # inference resolution
+  conf: 0.35                   # person confidence threshold
+  iou: 0.5
+  tracker: bytetrack.yaml      # appearance-free tracker -> no identity, by design
+
+processing:
+  sample_fps: 3                # frames analysed per second of footage
+  max_minutes: null            # null = whole file; e.g. 5 = first 5 minutes only
+  display: true                # show the live annotated window
+  display_scale: 0.6           # window size relative to source resolution
+  save_annotated_video: false  # write the overlay to .ai/artifacts/ (slow)
+  trail_length: 40             # tracked points kept for the movement path overlay
+
+analytics:
+  min_track_seconds: 1.5       # ignore flicker tracks shorter than this
+  zone_min_dwell_seconds: 3.0  # a zone visit must last this long to be recorded
+  zone_exit_grace_seconds: 2.5 # must be outside a zone this long before it counts
+                               # as left -- stops boundary jitter faking visits
+  table_seat_seconds: 60.0     # dwell above this in a table zone = a real "sitting"
+  stop_speed_px_per_s: 22.0    # below this speed a person counts as stopped/waiting
+  stop_min_seconds: 5.0        # ... for at least this long
+  revisit_gap_seconds: 45.0    # leave a zone and come back after this = a revisit
+  reentry_gap_seconds: 60.0    # leave and re-cross the door after this = a re-entry
+  occupancy_bin_seconds: 60    # resolution of the busy/quiet timeline
+  busy_thresholds:             # store-wide occupancy bands. Tuned against the
+    empty: 1                   #   18:00-19:00 dinner footage, where this store
+    quiet: 8                   #   runs 20-27 people. Retune for other dayparts.
+    steady: 18                 # < 1 EMPTY | < 8 QUIET | < 18 STEADY
+    busy: 28                   # < 28 BUSY | >= 28 PACKED
+
+output:
+  dir: .ai/artifacts           # events + summary land here
+  write_events: true
+
+# ---------------------------------------------------------------------------
+# Cameras. `enabled: false` skips one. `zones` points at the polygon config.
+# ---------------------------------------------------------------------------
+cameras:
+  - name: front_entrance
+    label: Front Entrance
+    video: Data/Front Entrance.mp4
+    zones: config/zones/front_entrance.json
+    enabled: true
+    role: primary        # owns entries + the main dining room
+    start_time: "2026-09-20 18:00:00"   # wall clock at video t=0 (from the burned-in overlay)
+
+  - name: beverage_station
+    label: Beverage Station
+    video: Data/Beverage Station.mp4
+    zones: config/zones/beverage_station.json
+    enabled: true
+    role: secondary      # owns beverage/pickup + right-side seating
+    start_time: "2026-09-20 18:00:00"
+
+  - name: pos
+    label: POS
+    video: Data/POS.mp4
+    zones: config/zones/pos.json
+    enabled: true
+    role: secondary      # owns the order queue only; staff floor is masked
+    start_time: "2026-09-20 18:00:00"

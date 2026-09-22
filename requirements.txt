@@ -1,0 +1,18 @@
+# MOD Pizza - anonymous CCTV analytics MVP
+#
+# !! GPU NOTE - READ THIS FIRST !!
+# Installing this file on its own gives you the CPU-only build of torch, and
+# nothing warns you about it. The pipeline still runs, but at ~1.5 frames/s
+# instead of ~20. For an NVIDIA GPU, install torch FIRST:
+#
+#     pip install torch --index-url https://download.pytorch.org/whl/cu128
+#
+# then run `pip install -r requirements.txt`. Verify with:
+#     python -c "import torch; print(torch.__version__, torch.cuda.is_available())" 
+
+ultralytics>=8.3,<9        # YOLO person detection + built-in ByteTrack
+torch>=2.2                 # inference backend for ultralytics
+opencv-python>=4.9         # video IO and the overlay window
+numpy>=1.26
+PyYAML>=6.0                # settings.yaml
+lap>=0.5                   # assignment solver used by ByteTrack

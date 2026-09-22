@@ -1,0 +1,44 @@
+{
+  "camera": "pos",
+  "frame_size": [1920, 1134],
+  "_comment": "POS is mostly staff floor. Only the customer strip in front of the make line and the register is counted; everything else is masked. Redraw with: python tools/zone_editor.py pos",
+  "lines": [],
+  "polygons": [
+    {
+      "id": "queue_makeline",
+      "type": "queue",
+      "label": "Order queue (make line)",
+      "points": [[906, 0], [1216, 0], [1170, 172], [988, 282], [902, 268]],
+      "occupancy": true
+    },
+    {
+      "id": "order_register",
+      "type": "counter",
+      "label": "Register",
+      "points": [[742, 14], [898, 8], [898, 300], [874, 338], [728, 322]],
+      "occupancy": true
+    }
+  ],
+  "masks": [
+    {
+      "id": "staff_floor",
+      "label": "Staff work floor behind the line",
+      "points": [[1290, 0], [1920, 0], [1920, 1134], [950, 1134], [1000, 640], [1060, 300], [1240, 220]]
+    },
+    {
+      "id": "staff_oven_line",
+      "label": "Staff oven / cut table",
+      "points": [[0, 560], [700, 640], [950, 1134], [0, 1134]]
+    },
+    {
+      "id": "staff_makeline_back",
+      "label": "Behind the make line",
+      "points": [[1216, 0], [1500, 0], [1460, 330], [1170, 200]]
+    },
+    {
+      "id": "seating_owned_by_front_cam",
+      "label": "Left seating (counted by the Front Entrance camera)",
+      "points": [[0, 0], [740, 0], [744, 330], [430, 340], [0, 210]]
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "camera": "beverage_station",
+  "frame_size": [1920, 1134],
+  "_comment": "Pixel coordinates in the source frame. Redraw with: python tools/zone_editor.py beverage_station",
+  "lines": [],
+  "polygons": [
+    {
+      "id": "pickup_counter",
+      "type": "counter",
+      "label": "Online pickup",
+      "points": [[228, 432], [404, 414], [432, 722], [248, 784]],
+      "occupancy": true
+    },
+    {
+      "id": "beverage_station",
+      "type": "beverage",
+      "label": "Beverage station",
+      "points": [[676, 352], [1182, 362], [1192, 640], [700, 700]],
+      "occupancy": true
+    },
+    {
+      "id": "table_bar_long",
+      "type": "table",
+      "label": "Long bar table",
+      "points": [[436, 420], [728, 410], [696, 652], [418, 730]],
+      "seats": 6,
+      "occupancy": true
+    },
+    {
+      "id": "table_communal",
+      "type": "table",
+      "label": "Communal high table",
+      "points": [[880, 620], [1180, 442], [1420, 726], [1200, 1030], [896, 936]],
+      "seats": 10,
+      "occupancy": true
+    },
+    {
+      "id": "table_window_right",
+      "type": "table",
+      "label": "Right window seating",
+      "points": [[1290, 370], [1800, 410], [1840, 762], [1450, 732], [1302, 566]],
+      "seats": 8,
+      "occupancy": true
+    },
+    {
+      "id": "table_corner_se",
+      "type": "table",
+      "label": "South-east corner seating",
+      "points": [[1622, 856], [1920, 804], [1920, 1134], [1478, 1134]],
+      "seats": 4,
+      "occupancy": true
+    },
+    {
+      "id": "floor_transit",
+      "type": "other",
+      "label": "Beverage-side walkway",
+      "points": [[470, 760], [700, 720], [880, 720], [870, 930], [1120, 1090], [700, 1134], [300, 1134], [290, 800]],
+      "occupancy": true
+    }
+  ],
+  "masks": [
+    {
+      "id": "staff_pickup_line",
+      "label": "Staff side of the pickup counter",
+      "points": [[0, 260], [226, 300], [226, 730], [0, 650]]
+    }
+  ]
+}
