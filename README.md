@@ -1,4 +1,4 @@
-# MOD Pizza — Anonymous CCTV Store Analytics (MVP)
+# MOD Pizza — Anonymous CCTV Store Analytics (MVP) Champions village outlet
 
 Turns recorded MOD Pizza outlet CCTV into store-intelligence numbers: how many
 people come in, how busy the room is, which tables are used and for how long,
