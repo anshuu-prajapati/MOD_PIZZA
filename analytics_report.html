@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOD PIZZA - CCTV Analytics Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        header .tagline {
+            font-size: 0.95em;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        .system-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .info-item strong {
+            display: block;
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 50px;
+        }
+
+        .section h2 {
+            font-size: 1.8em;
+            color: #2c3e50;
+            border-bottom: 4px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .section h2::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: #667eea;
+            border-radius: 50%;
+            margin-right: 15px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .stat-card .value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .stat-card .label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        table thead {
+            background: #667eea;
+            color: white;
+        }
+
+        table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
+        }
+
+        table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        table tbody tr:hover {
+            background: #f8f9ff;
+        }
+
+        table tbody tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .chart-bar {
+            display: inline-block;
+            height: 20px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 2px;
+            margin: 0 5px;
+            vertical-align: middle;
+        }
+
+        .metric-box {
+            background: #f8f9ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .metric-box strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .occupancy-chart {
+            background: white;
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .occupancy-bar {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            gap: 10px;
+        }
+
+        .occupancy-bar .label {
+            width: 80px;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+
+        .occupancy-bar .bar-container {
+            flex: 1;
+            background: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            height: 30px;
+            position: relative;
+        }
+
+        .occupancy-bar .bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: white;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .occupancy-bar .status {
+            width: 80px;
+            text-align: right;
+            font-size: 0.85em;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .flow-diagram {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #555;
+            line-height: 1.8;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            color: #856404;
+        }
+
+        .warning-box strong {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .limitation-list {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .limitation-list ol {
+            margin-left: 20px;
+            line-height: 2;
+        }
+
+        .limitation-list li {
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin: 2px;
+        }
+
+        .status-busy {
+            background: #ff6b6b;
+        }
+
+        .status-quiet {
+            background: #4ecdc4;
+        }
+
+        .status-empty {
+            background: #95e1d3;
+        }
+
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 0.9em;
+        }
+
+        .highlight {
+            background: #fffacd;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            table {
+                font-size: 0.9em;
+            }
+
+            table th, table td {
+                padding: 10px;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>🍕 MOD PIZZA - CCTV ANALYTICS</h1>
+            <div class="tagline">Anonymous Person Analytics • No Identity • No Faces • No Names</div>
+
+            <div class="system-info">
+                <div class="info-item">
+                    <strong>Model</strong>
+                    models/yolo11m.pt
+                </div>
+                <div class="info-item">
+                    <strong>Device</strong>
+                    CPU
+                </div>
+                <div class="info-item">
+                    <strong>Tracker</strong>
+                    bytetrack.yaml
+                </div>
+                <div class="info-item">
+                    <strong>Footage Window</strong>
+                    2026-09-20 18:00 → 18:04
+                </div>
+                <div class="info-item">
+                    <strong>Duration</strong>
+                    5.0 minutes per camera
+                </div>
+                <div class="info-item">
+                    <strong>Cameras</strong>
+                    3 (Front Entrance, Beverage Station, POS)
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="content">
+
+            <!-- Executive Summary -->
+            <section class="section">
+                <h2>Executive Summary</h2>
+                <div class="summary-grid">
+                    <div class="stat-card">
+                        <div class="label">Frames Analysed</div>
+                        <div class="value">5,996</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Anonymous Tracks</div>
+                        <div class="value">390</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Store Status</div>
+                        <div class="value">BUSY</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Average Occupancy</div>
+                        <div class="value">21.8</div>
+                    </div>
+                </div>
+                <div class="metric-box">
+                    <strong>⚠️ Important Note:</strong>
+                    Raw sightings (390) are NOT a head count. A track is a continuous sighting, not a person. Someone occluded and then re-detected becomes a new track. Every headline number below is built on the per-frame headcount inside each zone, not on track identity.
+                </div>
+            </section>
+
+            <!-- Section 1: Customer Entry -->
+            <section class="section">
+                <h2>1. How Many People Are Entering</h2>
+
+                <h3 style="color: #2c3e50; margin-top: 20px; margin-bottom: 15px;">Customers Served by Zone</h3>
+                <p style="margin-bottom: 15px; color: #666;">Counted where they order, not at the door. Each count is one 0→occupied spell of that zone.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Zone</th>
+                            <th>Camera</th>
+                            <th>Entries</th>
+                            <th>Rate/Hour</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Online pickup (Beverage Station)</td>
+                            <td>Beverage Station</td>
+                            <td>4</td>
+                            <td>48/h</td>
+                        </tr>
+                        <tr>
+                            <td>Order queue (make line)</td>
+                            <td>POS</td>
+                            <td>4</td>
+                            <td>48/h</td>
+                        </tr>
+                        <tr>
+                            <td>Register</td>
+                            <td>POS</td>
+                            <td>3</td>
+                            <td>36/h</td>
+                        </tr>
+                        <tr>
+                            <td>Order queue / menu</td>
+                            <td>Front Entrance</td>
+                            <td>1</td>
+                            <td>12/h</td>
+                        </tr>
+                        <tr>
+                            <td>Counter walkway</td>
+                            <td>Front Entrance</td>
+                            <td>1</td>
+                            <td>12/h</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 style="color: #2c3e50; margin-top: 25px; margin-bottom: 15px;">Front Door Traffic</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Crossings IN</td>
+                            <td><span class="badge">1</span></td>
+                        </tr>
+                        <tr>
+                            <td>Crossings OUT</td>
+                            <td><span class="badge">0</span></td>
+                        </tr>
+                        <tr>
+                            <td>Net Flow</td>
+                            <td><span class="badge" style="background: #ff6b6b;">+1 person</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="metric-box">
+                    <strong>ℹ️ Note:</strong> Front door only - the side door has no camera, so this UNDERCOUNTS entries.
+                </div>
+            </section>
+
+            <!-- Section 2: Store Occupancy -->
+            <section class="section">
+                <h2>2. When The Store Is Busy or Empty</h2>
+
+                <h3 style="color: #2c3e50; margin-bottom: 20px;">Store Occupancy Timeline</h3>
+                <p style="margin-bottom: 20px; color: #666;">Sum of non-overlapping camera zones per minute:</p>
+
+                <div class="occupancy-chart">
+                    <div class="occupancy-bar">
+                        <div class="label">18:00</div>
+                        <div class="bar-container">
+                            <div class="bar-fill" style="width: 94%;">21.9</div>
+                        </div>
+                        <div class="status"><span class="badge status-busy">BUSY</span></div>
+                    </div>
+                    <div class="occupancy-bar">
+                        <div class="label">18:01</div>
+                        <div class="bar-container">
+                            <div class="bar-fill" style="width: 88%;">20.5</div>
+                        </div>
+                        <div class="status"><span class="badge status-busy">BUSY</span></div>
+                    </div>
+                    <div class="occupancy-bar">
+                        <div class="label">18:02</div>
+                        <div class="bar-container">
+                            <div class="bar-fill" style="width: 97%;">22.6</div>
+                        </div>
+                        <div class="status"><span class="badge status-busy">BUSY</span></div>
+                    </div>
+                    <div class="occupancy-bar">
+                        <div class="label">18:03</div>
+                        <div class="bar-container">
+                            <div class="bar-fill" style="width: 100%;">23.3</div>
+                        </div>
+                        <div class="status"><span class="badge status-busy">BUSY</span></div>
+                    </div>
+                    <div class="occupancy-bar">
+                        <div class="label">18:04</div>
+                        <div class="bar-container">
+                            <div class="bar-fill" style="width: 89%;">20.9</div>
+                        </div>
+                        <div class="status"><span class="badge status-busy">BUSY</span></div>
+                    </div>
+                </div>
+
+                <div class="summary-grid" style="margin-top: 30px;">
+                    <div class="stat-card">
+                        <div class="label">Busiest 10 min</div>
+                        <div class="value">21.8</div>
+                        <div class="label" style="margin-top: 10px;">18:00-18:10 (BUSY)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Peak Minute</div>
+                        <div class="value">23.3</div>
+                        <div class="label" style="margin-top: 10px;">18:03</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Average</div>
+                        <div class="value">21.8</div>
+                        <div class="label" style="margin-top: 10px;">people</div>
+                    </div>
+                </div>
+
+                <h3 style="color: #2c3e50; margin-top: 30px; margin-bottom: 15px;">Time Distribution</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Percentage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge" style="background: #95e1d3;">EMPTY</span></td>
+                            <td>0%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge status-quiet">QUIET</span></td>
+                            <td>0%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge" style="background: #4ecdc4;">STEADY</span></td>
+                            <td>0%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge status-busy">BUSY</span></td>
+                            <td>100%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge" style="background: #d32f2f;">PACKED</span></td>
+                            <td>0%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Section 3: Current Crowding -->
+            <section class="section">
+                <h2>3. How Crowded The Store Is Right Now</h2>
+                <p style="margin-bottom: 20px; color: #666;">Last processed frame status:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Camera / Zone</th>
+                            <th>People</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Front Entrance</td>
+                            <td><strong>12 people</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Beverage Station</td>
+                            <td><strong>5 people</strong></td>
+                        </tr>
+                        <tr>
+                            <td>POS</td>
+                            <td><strong>3 people</strong></td>
+                        </tr>
+                        <tr style="background: #667eea; color: white;">
+                            <td><strong>STORE TOTAL</strong></td>
+                            <td><strong>20 people</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="metric-box">
+                    <strong>Status: <span class="badge status-busy">BUSY</span></strong><br>
+                    Occupancy Bands: EMPTY &lt;1 | QUIET &lt;8 | STEADY &lt;18 | BUSY &lt;28 | PACKED ≥28
+                </div>
+            </section>
+
+            <!-- Section 4: Table Usage -->
+            <section class="section">
+                <h2>4. Which Tables Are Being Used</h2>
+                <p style="margin-bottom: 20px; color: #666;">A SITTING is one spell of a table zone being occupied for ≥60s. PARTY SIZE is the headcount that zone held for longest.</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Table Zone</th>
+                            <th>Camera</th>
+                            <th>Sittings</th>
+                            <th>Typical</th>
+                            <th>Peak</th>
+                            <th>Avg Stay</th>
+                            <th>In Use</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Left window seating</td>
+                            <td>Front Entrance</td>
+                            <td>1</td>
+                            <td>2p</td>
+                            <td>8</td>
+                            <td>5m 00s</td>
+                            <td>98%</td>
+                        </tr>
+                        <tr>
+                            <td>Centre tables</td>
+                            <td>Front Entrance</td>
+                            <td>1</td>
+                            <td>4p</td>
+                            <td>6</td>
+                            <td>4m 26s</td>
+                            <td>98%</td>
+                        </tr>
+                        <tr>
+                            <td>Booth east</td>
+                            <td>Front Entrance</td>
+                            <td>1</td>
+                            <td>2p</td>
+                            <td>5</td>
+                            <td>5m 00s</td>
+                            <td>100%</td>
+                        </tr>
+                        <tr>
+                            <td>Right window seating</td>
+                            <td>Beverage Station</td>
+                            <td>1</td>
+                            <td>2p</td>
+                            <td>3</td>
+                            <td>4m 54s</td>
+                            <td>91%</td>
+                        </tr>
+                        <tr>
+                            <td>South-east corner seating</td>
+                            <td>Beverage Station</td>
+                            <td>1</td>
+                            <td>1p</td>
+                            <td>3</td>
+                            <td>4m 20s</td>
+                            <td>81%</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="summary-grid" style="margin-top: 25px;">
+                    <div class="stat-card">
+                        <div class="label">Total Sittings</div>
+                        <div class="value">5</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Average Stay</div>
+                        <div class="value">4m 44s</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Longest Sitting</div>
+                        <div class="value">5m 00s</div>
+                    </div>
+                </div>
+
+                <h3 style="color: #2c3e50; margin-top: 25px; margin-bottom: 15px;">Party Size Distribution</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Party Size</th>
+                            <th>Count</th>
+                            <th>Percentage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Solo (1)</td>
+                            <td>1</td>
+                            <td>20% <div class="chart-bar" style="width: 60px;"></div></td>
+                        </tr>
+                        <tr>
+                            <td>Pair (2)</td>
+                            <td>3</td>
+                            <td>60% <div class="chart-bar" style="width: 180px;"></div></td>
+                        </tr>
+                        <tr>
+                            <td>Small group (3-4)</td>
+                            <td>1</td>
+                            <td>20% <div class="chart-bar" style="width: 60px;"></div></td>
+                        </tr>
+                        <tr>
+                            <td>Large group (5+)</td>
+                            <td>0</td>
+                            <td>0%</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="warning-box">
+                    <strong>⚠️ Communal Table Note:</strong>
+                    Communal high table is a shared table - strangers sit together there, so a headcount of 4 is not necessarily a party of 4.
+                </div>
+            </section>
+
+            <!-- Section 5: Movement Patterns -->
+            <section class="section">
+                <h2>5. How People Move Through The Store</h2>
+
+                <h3 style="color: #2c3e50; margin-bottom: 15px;">Front Entrance - Most Common Moves</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>From Zone</th>
+                            <th>To Zone</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Counter walkway</td>
+                            <td>Order queue / menu</td>
+                            <td><span class="chart-bar" style="width: 90px;"></span> 3</td>
+                        </tr>
+                        <tr>
+                            <td>Order queue / menu</td>
+                            <td>Counter walkway</td>
+                            <td><span class="chart-bar" style="width: 60px;"></span> 2</td>
+                        </tr>
+                        <tr>
+                            <td>Order queue / menu</td>
+                            <td>Booth east</td>
+                            <td><span class="chart-bar" style="width: 30px;"></span> 1</td>
+                        </tr>
+                        <tr>
+                            <td>Booth east</td>
+                            <td>Order queue / menu</td>
+                            <td><span class="chart-bar" style="width: 30px;"></span> 1</td>
+                        </tr>
+                        <tr>
+                            <td>Booth east</td>
+                            <td>Counter walkway</td>
+                            <td><span class="chart-bar" style="width: 30px;"></span> 1</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 style="color: #2c3e50; margin-top: 25px; margin-bottom: 15px;">Beverage Station - Most Common Moves</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>From Zone</th>
+                            <th>To Zone</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Beverage station</td>
+                            <td>Long bar table</td>
+                            <td><span class="chart-bar" style="width: 60px;"></span> 2</td>
+                        </tr>
+                        <tr>
+                            <td>Beverage station</td>
+                            <td>Communal high table</td>
+                            <td><span class="chart-bar" style="width: 60px;"></span> 2</td>
+                        </tr>
+                        <tr>
+                            <td>Beverage station</td>
+                            <td>South-east corner seating</td>
+                            <td><span class="chart-bar" style="width: 30px;"></span> 1</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="metric-box">
+                    <strong>Key Statistics:</strong><br>
+                    • Average time in view per camera: 27s<br>
+                    • Longest continuous track: 4m 49s
+                </div>
+            </section>
+
+            <!-- Section 6: Return Visits -->
+            <section class="section">
+                <h2>6. Whether People Appear To Return</h2>
+
+                <h3 style="color: #2c3e50; margin-bottom: 15px;">Short-term Re-entries</h3>
+                <div class="metric-box">
+                    <strong>Same track crossed IN again after ≥60s:</strong> 0
+                </div>
+
+                <h3 style="color: #2c3e50; margin-top: 25px; margin-bottom: 15px;">In-store Return Trips</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Zone</th>
+                            <th>Times Revisited</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Beverage-side walkway</td>
+                            <td>1</td>
+                        </tr>
+                        <tr>
+                            <td>Beverage station</td>
+                            <td>1</td>
+                        </tr>
+                        <tr>
+                            <td>Communal high table</td>
+                            <td>1</td>
+                        </tr>
+                        <tr>
+                            <td>Register</td>
+                            <td>1</td>
+                        </tr>
+                        <tr style="background: #667eea; color: white;">
+                            <td><strong>Total Return Trips</strong></td>
+                            <td><strong>4</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="warning-box">
+                    <strong>ℹ️ Limitation:</strong>
+                    This is within-session only. Recognising a returning customer on another day would need face/appearance ID - deliberately NOT built.
+                </div>
+            </section>
+
+            <!-- Section 7: Entry Points -->
+            <section class="section">
+                <h2>7. Where People Enter</h2>
+
+                <h3 style="color: #2c3e50; margin-bottom: 15px;">Primary Entry Points</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Location</th>
+                            <th>Entries</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Front Entrance / front_door</td>
+                            <td><strong>1</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 style="color: #2c3e50; margin-top: 25px; margin-bottom: 15px;">Where Tracks First Appear (by camera)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Camera / Zone</th>
+                            <th>Initial Tracks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="background: #667eea; color: white;"><strong>Front Entrance</strong></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;&nbsp;Left window seating</td>
+                            <td>61 tracks</td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;&nbsp;Outside any zone (frame edge)</td>
+                            <td>42 tracks</td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;&nbsp;Booth east</td>
+                            <td>35 tracks</td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;&nbsp;Order queue / menu</td>
+                            <td>26 tracks</td>
+                        </tr>
+                        <tr style="background: #667eea; color: white;"><td colspan="2"><strong>Beverage Station</strong></td></tr>
+                        <tr>
+                            <td>&nbsp;&nbsp;Outside any zone (frame edge)</td>
+                            <td>37 tracks</td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;&nbsp;South-east corner seating</td>
+                            <td>21 tracks</td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;&nbsp;Beverage station</td>
+                            <td>12 tracks</td>
+                        </tr>
+                        <tr style="background: #667eea; color: white;"><td colspan="2"><strong>POS</strong></td></tr>
+                        <tr>
+                            <td>&nbsp;&nbsp;Register</td>
+                            <td>30 tracks</td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;&nbsp;Outside any zone (frame edge)</td>
+                            <td>29 tracks</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="warning-box">
+                    <strong>⚠️ Note:</strong> Only the front door is covered. The side door is invisible to the system, so entries UNDERCOUNT.
+                </div>
+            </section>
+
+            <!-- Section 8: Waiting Zones -->
+            <section class="section">
+                <h2>8. Where They Stop or Wait</h2>
+                <p style="margin-bottom: 20px; color: #666;">A 'stop' = moving slower than 22 px/s for ≥5s. Table zones excluded - people sitting are in Section 4.</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Zone</th>
+                            <th>Stops</th>
+                            <th>Total Waiting</th>
+                            <th>Average</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Unzoned floor</td>
+                            <td>31</td>
+                            <td>6m 31s</td>
+                            <td>13s</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Order queue / menu</strong></td>
+                            <td><strong>18</strong></td>
+                            <td><strong>6m 18s</strong></td>
+                            <td><strong>21s</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Online pickup</td>
+                            <td>14</td>
+                            <td>2m 44s</td>
+                            <td>12s</td>
+                        </tr>
+                        <tr>
+                            <td>Beverage-side walkway</td>
+                            <td>10</td>
+                            <td>2m 27s</td>
+                            <td>15s</td>
+                        </tr>
+                        <tr>
+                            <td>Beverage station</td>
+                            <td>9</td>
+                            <td>1m 19s</td>
+                            <td>9s</td>
+                        </tr>
+                        <tr>
+                            <td>Order queue (make line)</td>
+                            <td>6</td>
+                            <td>48s</td>
+                            <td>8s</td>
+                        </tr>
+                        <tr>
+                            <td>Register</td>
+                            <td>3</td>
+                            <td>21s</td>
+                            <td>7s</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="metric-box">
+                    <strong>🔍 Key Insight:</strong><br>
+                    Biggest waiting hotspot inside a zone: <strong>Order queue / menu (6m 18s)</strong><br>
+                    Most waiting happens on floor without zone coverage. Add zones there to learn what people wait for.
+                </div>
+            </section>
+
+            <!-- Section 9: Queue Analysis -->
+            <section class="section">
+                <h2>9. Where Queues Form</h2>
+
+                <h3 style="color: #2c3e50; margin-bottom: 20px;">Order Queue / Menu (Front Entrance)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>People who passed through</td>
+                            <td>35</td>
+                        </tr>
+                        <tr>
+                            <td>Peak queue length</td>
+                            <td><strong>5 people</strong> (instantaneous)</td>
+                        </tr>
+                        <tr>
+                            <td>Average queue length</td>
+                            <td>2.8 people</td>
+                        </tr>
+                        <tr>
+                            <td>Minutes with 2+ waiting</td>
+                            <td>5</td>
+                        </tr>
+                        <tr>
+                            <td>Average time in queue</td>
+                            <td>18s</td>
+                        </tr>
+                        <tr>
+                            <td>Longest wait</td>
+                            <td>1m 35s</td>
+                        </tr>
+                        <tr>
+                            <td>Queue peaked at</td>
+                            <td>18:03</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 style="color: #2c3e50; margin-top: 25px; margin-bottom: 20px;">Order Queue (Make Line) - POS</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>People who passed through</td>
+                            <td>14</td>
+                        </tr>
+                        <tr>
+                            <td>Peak queue length</td>
+                            <td><strong>3 people</strong> (instantaneous)</td>
+                        </tr>
+                        <tr>
+                            <td>Average queue length</td>
+                            <td>0.9 people</td>
+                        </tr>
+                        <tr>
+                            <td>Minutes with 2+ waiting</td>
+                            <td>0</td>
+                        </tr>
+                        <tr>
+                            <td>Average time in queue</td>
+                            <td>12s</td>
+                        </tr>
+                        <tr>
+                            <td>Longest wait</td>
+                            <td>40s</td>
+                        </tr>
+                        <tr>
+                            <td>Queue peaked at</td>
+                            <td>18:00</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="warning-box">
+                    <strong>📌 Note:</strong> Staff-side floor is masked out of the POS camera so employees are not counted as customers.
+                </div>
+            </section>
+
+            <!-- Section 10: Zone Traffic -->
+            <section class="section">
+                <h2>10. Which Areas They Visit</h2>
+                <p style="margin-bottom: 20px; color: #666;">Traffic ranked by zone visits:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Zone</th>
+                            <th>Type</th>
+                            <th>Visits</th>
+                            <th>Tracks</th>
+                            <th>Total Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Left window seating</strong></td>
+                            <td>table</td>
+                            <td>55</td>
+                            <td>29</td>
+                            <td>8m 54s <div class="chart-bar" style="width: 150px;"></div></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Centre tables</strong></td>
+                            <td>table</td>
+                            <td>53</td>
+                            <td>11</td>
+                            <td>14m 37s <div class="chart-bar" style="width: 140px;"></div></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Counter walkway</strong></td>
+                            <td>counter</td>
+                            <td>50</td>
+                            <td>11</td>
+                            <td>10m 37s <div class="chart-bar" style="width: 130px;"></div></td>
+                        </tr>
+                        <tr>
+                            <td>Order queue / menu</td>
+                            <td>queue</td>
+                            <td>35</td>
+                            <td>17</td>
+                            <td>10m 18s <div class="chart-bar" style="width: 120px;"></div></td>
+                        </tr>
+                        <tr>
+                            <td>South-east corner seating</td>
+                            <td>table</td>
+                            <td>30</td>
+                            <td>16</td>
+                            <td>3m 31s <div class="chart-bar" style="width: 80px;"></div></td>
+                        </tr>
+                        <tr>
+                            <td>Right window seating</td>
+                            <td>table</td>
+                            <td>28</td>
+                            <td>7</td>
+                            <td>6m 57s <div class="chart-bar" style="width: 100px;"></div></td>
+                        </tr>
+                        <tr>
+                            <td>Booth east</td>
+                            <td>table</td>
+                            <td>26</td>
+                            <td>11</td>
+                            <td>6m 40s <div class="chart-bar" style="width: 95px;"></div></td>
+                        </tr>
+                        <tr>
+                            <td>Register</td>
+                            <td>counter</td>
+                            <td>20</td>
+                            <td>8</td>
+                            <td>4m 19s</td>
+                        </tr>
+                        <tr>
+                            <td>Beverage station</td>
+                            <td>beverage</td>
+                            <td>18</td>
+                            <td>16</td>
+                            <td>4m 29s</td>
+                        </tr>
+                        <tr>
+                            <td>Online pickup</td>
+                            <td>counter</td>
+                            <td>18</td>
+                            <td>9</td>
+                            <td>4m 55s</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Section 11: Traffic Flow -->
+            <section class="section">
+                <h2>11. Where They Move Toward Counter / Seating</h2>
+
+                <h3 style="color: #2c3e50; margin-bottom: 15px;">Traffic Split Across Store</h3>
+                <div class="occupancy-bar" style="margin-bottom: 20px;">
+                    <div class="label">Counter/Queue</div>
+                    <div class="bar-container">
+                        <div class="bar-fill" style="width: 37%;">137 visits (37%)</div>
+                    </div>
+                </div>
+                <div class="occupancy-bar">
+                    <div class="label">Seating/Beverage</div>
+                    <div class="bar-container">
+                        <div class="bar-fill" style="width: 63%;">234 visits (63%)</div>
+                    </div>
+                </div>
+
+                <h3 style="color: #2c3e50; margin-top: 25px; margin-bottom: 15px;">Dine-in Analysis</h3>
+                <div class="metric-box">
+                    <strong>5 sittings vs 4 served at Online pickup</strong><br>
+                    → Roughly 100% of customers sat down; the rest took it away.<br>
+                    Both numbers are occupancy spells, so neither depends on tracking a person from the counter to a seat - which is what we cannot do.
+                </div>
+
+                <h3 style="color: #2c3e50; margin-top: 25px; margin-bottom: 15px;">First Destination from Door (1 arrival tracked)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Destination Category</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Counter / order queue</td>
+                            <td>0</td>
+                        </tr>
+                        <tr>
+                            <td>Seating / beverage</td>
+                            <td>1</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="warning-box">
+                    <strong>⚠️ Caution:</strong> 1 arrival is a small sample. Treat the traffic split as the reliable figure.
+                </div>
+            </section>
+
+            <!-- Section 12: Limitations -->
+            <section class="section">
+                <h2>Known Limitations</h2>
+                <p style="margin-bottom: 20px; color: #666; font-weight: 500;">Do not read the numbers without these:</p>
+
+                <div class="limitation-list">
+                    <ol>
+                        <li><strong>Front door only</strong> - The side door has no camera, so entries undercount.</li>
+                        <li><strong>Oblique angle</strong> - The front door is distant and oblique; groups walking in together merge into one detection.</li>
+                        <li><strong>Per-camera tracking</strong> - Track IDs are per-camera. Someone walking between cameras becomes a new anonymous track, so store-wide paths are coarse.</li>
+                        <li><strong>Within-session only</strong> - Returning customers across visits or days are NOT computed. Only within-session re-entry and in-store return trips are reported.</li>
+                        <li><strong>Staff masking</strong> - Staff are excluded by masking fixed floor areas, but a staff member stepping onto the customer floor can still be counted.</li>
+                        <li><strong>Seated detection</strong> - People are detected from the torso, so floor point is approximate; table polygons are drawn generously to compensate.</li>
+                        <li><strong>Overlapping zones</strong> - Occupancy sums each camera's own zones. Overlapping floor is owned by exactly one camera, so zone editing changes totals.</li>
+                        <li><strong>Track inflation</strong> - Tracking is appearance-free, so a person hidden behind another or a booth comes back as a NEW track. Track totals overstate head count; occupancy and dwell are more reliable.</li>
+                        <li><strong>Unvalidated entries</strong> - Entry counts have not been ground-truthed on this footage. Hand-count two or three 10-minute windows before quoting to anyone.</li>
+                    </ol>
+                </div>
+            </section>
+
+            <!-- Data Privacy Note -->
+            <section class="section">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; text-align: center;">
+                    <h3 style="color: white; border: none; padding: 0; margin-bottom: 15px;">🔒 Privacy Assurance</h3>
+                    <p style="color: rgba(255, 255, 255, 0.9); margin: 0;">
+                        <strong>No personal data was produced, stored, or inferred.</strong><br>
+                        Anonymous analytics only • No faces • No names • No identity • No customer profiles • No purchases
+                    </p>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>Report generated for MOD PIZZA CCTV Analytics</p>
+            <p style="margin-top: 10px; opacity: 0.8;">Footage Window: 2026-09-20 18:00 → 18:04 (5.0 min per camera)</p>
+        </footer>
+    </div>
+</body>
+</html>

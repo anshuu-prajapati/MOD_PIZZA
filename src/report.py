@@ -79,6 +79,49 @@ def _window_means(series: list[tuple[float, float]], window_s: int):
     return sorted((b * window_s, float(np.mean(v))) for b, v in buckets.items())
 
 
+def _events(results: list[CameraResult], *types: str, min_s: float = 0.0):
+    """All occupancy events on zones of the given types."""
+    want = set(types)
+    out = []
+    for r in results:
+        kinds = {z.id: z.type for z in r.zones}
+        for e in r.occupancy_events:
+            if kinds.get(e.zone_id) in want and e.duration >= min_s:
+                out.append((r, e))
+    return out
+
+
+def _served_counts(results: list[CameraResult]) -> list[tuple[str, int]]:
+    """Customers served, as occupancy spells at each ordering point.
+
+    A register or make-line spell starts when the zone goes from empty to
+    occupied. One spell is one customer being served, whatever the tracker did
+    to their ID while they stood there.
+    """
+    rows = []
+    for r in results:
+        kinds = {z.id: z.type for z in r.zones}
+        labels = {z.id: z.label for z in r.zones}
+        for zid, kind in kinds.items():
+            if kind not in ("counter", "queue"):
+                continue
+            n = sum(1 for e in r.occupancy_events if e.zone_id == zid)
+            if n:
+                rows.append((f"{labels[zid]} ({r.label})", n))
+    rows.sort(key=lambda kv: -kv[1])
+    return rows
+
+
+def _party_bucket(size: int) -> str:
+    if size <= 1:
+        return "solo (1)"
+    if size == 2:
+        return "pair (2)"
+    if size <= 4:
+        return "small group (3-4)"
+    return "large group (5+)"
+
+
 # ---------------------------------------------------------------------- report
 def print_report(results: list[CameraResult], settings) -> dict:
     an = settings.analytics
@@ -108,21 +151,43 @@ def print_report(results: list[CameraResult], settings) -> dict:
         span = f"{t0.strftime('%Y-%m-%d')}  {span}"
     print(f" Footage window   : {span}   ({duration/60:.1f} min per camera)")
     print(f" Cameras          : {', '.join(r.label for r in results)}")
-    print(f" Frames analysed  : {frames:,}  |  anonymous tracks: {tracks}")
+    print(f" Frames analysed  : {frames:,}  |  raw sightings: {tracks} "
+          f"(NOT a head count - see below)")
     print(" Track IDs are temporary, camera-local, and discarded at the end of the run.")
-    print(" A track is a continuous sighting, NOT a person: one person who is occluded")
-    print(" and re-detected becomes a second track, so track counts exceed head count.")
+    print(" A track is a continuous sighting, not a person: someone occluded and then")
+    print(" re-detected becomes a new track. Every headline number below is therefore")
+    print(" built on the per-frame headcount inside each zone, not on track identity.")
 
     # ---------------------------------------------------------- 1. entries
     print(_h("1. HOW MANY PEOPLE ARE ENTERING"))
+
+    served = _served_counts(results)
+    if served:
+        print("  CUSTOMERS SERVED - counted where they order, not at the door.")
+        print("  Each count is one 0->occupied spell of that zone, so track breakage")
+        print("  cannot inflate or deflate it.")
+        for label, n in served:
+            rate = f"{n / (duration/3600):.0f}/h" if duration else "-"
+            print(f"    {label:<34}{n:>5}   ({rate})")
+        summary["customers_served"] = served[0][1]
+
     ins = [e for r in results for e in r.line_events if e.direction == "in"]
     outs = [e for r in results for e in r.line_events if e.direction == "out"]
     entries = len(ins)
-    print(f"  Front-door crossings IN     : {entries}")
-    print(f"  Front-door crossings OUT    : {len(outs)}")
-    print(f"  Net flow (in - out)         : {entries - len(outs):+d}")
-    if duration:
-        print(f"  Entry rate                  : {entries / (duration/3600):.0f} people/hour")
+    net = entries - len(outs)
+    print("\n  FRONT DOOR - a timing and direction signal, not a volume count:")
+    print(f"    crossings IN                {entries:>5}")
+    print(f"    crossings OUT               {len(outs):>5}")
+    print(f"    net flow                    {net:>+5}")
+    if occ:
+        drift = occ[-1][1] - occ[0][1]
+        print(f"    occupancy change over the window {drift:>+.0f} people")
+        if abs(net - drift) <= max(4, 0.35 * abs(drift or 1)):
+            print("    -> net flow agrees with the occupancy curve, so the line reads")
+            print("       DIRECTION correctly even though it undercounts absolute traffic.")
+        else:
+            print("    -> net flow disagrees with the occupancy curve; treat the door")
+            print("       line as unreliable on this footage and lean on the served count.")
 
     if ins:
         block = 600
@@ -190,48 +255,88 @@ def print_report(results: list[CameraResult], settings) -> dict:
     summary["occupancy_now"] = now
     summary["status_now"] = busy_status(now, bands)
 
-    # ------------------------------------------------- 4. tables + dwell
-    print(_h("4. WHICH TABLES ARE BEING USED AND FOR HOW LONG"))
+    # ------------------------------------------- 4. tables, parties, turnover
+    print(_h("4. WHICH TABLES ARE BEING USED, BY HOW MANY, AND FOR HOW LONG"))
     seat_s = float(an.get("table_seat_seconds", 60.0))
-    print(f"  A 'sitting' = one anonymous track present in a table zone for >= "
-          f"{seat_s:.0f}s.")
-    header = (f"  {'TABLE ZONE':<26}{'CAMERA':<18}{'SITTINGS':>9}{'AVG DWELL':>11}"
-              f"{'LONGEST':>10}{'PEAK':>6}{'% OF TIME IN USE':>18}")
+    print(f"  A SITTING is one spell of a table zone being occupied for >= {seat_s:.0f}s.")
+    print("  PARTY SIZE is the headcount that zone held for longest during the spell,")
+    print("  taken from the per-frame count - so one party is one sitting no matter")
+    print("  how many track IDs it churned through.")
+
+    sittings = _events(results, "table", min_s=seat_s)
+    header = (f"  {'TABLE ZONE':<26}{'CAMERA':<18}{'SITTINGS':>9}{'TYPICAL':>8}"
+              f"{'PEAK':>6}{'AVG STAY':>10}{'LONGEST':>10}{'IN USE':>8}")
     print(header)
     print("  " + "-" * (len(header) - 2))
-    table_rows = []
+
+    rows = []
     for r in results:
-        table_ids = [z.id for z in r.zones if z.type == "table"]
-        for zid in table_ids:
-            v = [x for x in r.visits if x.zone_id == zid and x.dwell >= seat_s]
-            if not v:
+        for z in r.zones:
+            if z.type != "table":
                 continue
-            occupied = r.zone_occupied_samples.get(zid, 0)
-            dwells = [x.dwell for x in v]
-            row = (_zone_label(results, zid), r.label, len(v),
-                   float(np.mean(dwells)), max(dwells),
-                   occupied / max(1, r.frames_processed) * 100,
-                   r.zone_peaks.get(zid, 0))
-            table_rows.append(row)
-    table_rows.sort(key=lambda x: -x[2])
-    for label, cam, n, avg, mx, pct, peak in table_rows:
-        print(f"  {label:<26}{cam:<18}{n:>9}{_fmt_dur(avg):>11}{_fmt_dur(mx):>10}"
-              f"{peak:>6}{pct:>17.0f}%")
-    if table_rows:
-        all_d = [d for r in results for x in r.visits
-                 if _zone_type(results, x.zone_id) == "table" and x.dwell >= seat_s
-                 for d in [x.dwell]]
-        print(f"\n  Total sittings across all tables : {sum(r[2] for r in table_rows)}")
-        print(f"  Average dwell at a table         : {_fmt_dur(float(np.mean(all_d)))}")
-        print(f"  Longest single sitting           : {_fmt_dur(max(all_d))}")
-        print(f"  Most-used table                  : {table_rows[0][0]} "
-              f"({table_rows[0][2]} sittings)")
-        idle = [z.label for r in results for z in r.zones if z.type == "table"
-                and z.label not in {t[0] for t in table_rows}]
-        print(f"  Tables never used in this window : "
+            ev = [e for rr, e in sittings if rr is r and e.zone_id == z.id]
+            if not ev:
+                continue
+            sizes = [e.size for e in ev]
+            durs = [e.duration for e in ev]
+            used = r.zone_occupied_samples.get(z.id, 0) / max(1, r.frames_processed) * 100
+            rows.append((z.label, r.label, len(ev),
+                         Counter(sizes).most_common(1)[0][0],
+                         max(e.peak for e in ev),
+                         float(np.mean(durs)), max(durs), used))
+    rows.sort(key=lambda x: -x[2])
+    for lbl, cam, n, typ, peak, avg, mx, used in rows:
+        print(f"  {lbl:<26}{cam:<18}{n:>9}{str(typ)+'p':>8}{peak:>6}"
+              f"{_fmt_dur(avg):>10}{_fmt_dur(mx):>10}{used:>7.0f}%")
+
+    if rows:
+        all_ev = [e for _, e in sittings]
+        print(f"\n  Sittings across all tables    : {len(all_ev)}")
+        print(f"  Average stay                  : "
+              f"{_fmt_dur(float(np.mean([e.duration for e in all_ev])))}")
+        print(f"  Longest single sitting        : "
+              f"{_fmt_dur(max(e.duration for e in all_ev))}")
+        print(f"  Busiest table                 : {rows[0][0]} ({rows[0][2]} sittings)")
+        idle = [z.label for r in results for z in r.zones
+                if z.type == "table" and z.label not in {x[0] for x in rows}]
+        print(f"  Never used as seating         : "
               f"{', '.join(idle) if idle else 'none - every table was used'}")
-        summary["total_sittings"] = sum(r[2] for r in table_rows)
-        summary["avg_table_dwell_s"] = round(float(np.mean(all_d)), 1)
+        summary["total_sittings"] = len(all_ev)
+        summary["avg_table_dwell_s"] = round(
+            float(np.mean([e.duration for e in all_ev])), 1)
+
+        # ---- party size mix
+        mix: Counter = Counter(_party_bucket(e.size) for e in all_ev)
+        tot = max(1, sum(mix.values()))
+        print("\n  PARTY SIZE MIX")
+        for k in ["solo (1)", "pair (2)", "small group (3-4)", "large group (5+)"]:
+            print(f"    {k:<20}{mix.get(k,0):>4}  ({mix.get(k,0)/tot*100:>3.0f}%)  "
+                  f"{_bar(mix.get(k,0), max(mix.values()), 22)}")
+        groups = sum(n for k, n in mix.items() if k.startswith(("small", "large")))
+        summary["party_groups_3plus"] = groups
+        summary["party_events"] = len(all_ev)
+
+        # ---- which tables take the groups
+        by_table: dict[str, Counter] = defaultdict(Counter)
+        for _, e in sittings:
+            by_table[e.zone_id][_party_bucket(e.size)] += 1
+        gt = [(zid, c) for zid, c in by_table.items()
+              if c["small group (3-4)"] + c["large group (5+)"] > 0]
+        if gt:
+            gt.sort(key=lambda kv: -(kv[1]["small group (3-4)"] + kv[1]["large group (5+)"]))
+            print("\n  WHERE GROUPS OF 3+ SIT")
+            for zid, c in gt:
+                n = c["small group (3-4)"] + c["large group (5+)"]
+                print(f"    {_zone_label(results, zid):<28}{n:>4} of "
+                      f"{sum(c.values())} sittings")
+        else:
+            print("\n  No party of 3+ was seated long enough to register in this window.")
+
+        shared = [z.label for r in results for z in r.zones
+                  if z.type == "table" and "communal" in z.id.lower()]
+        if shared:
+            print(f"  CAUTION: {', '.join(shared)} is a shared table - strangers sit")
+            print("  together there, so a headcount of 4 is not necessarily a party of 4.")
     else:
         print("  (no table sittings recorded)")
 
@@ -410,6 +515,21 @@ def print_report(results: list[CameraResult], settings) -> dict:
     summary["visits_counter_side"] = counter_visits
     summary["visits_seating_side"] = seat_visits
 
+    # Dine-in rate, from two independent event counts rather than from tracks.
+    served_rows = _served_counts(results)
+    seated = len(_events(results, "table", min_s=float(an.get("table_seat_seconds", 60.0))))
+    if served_rows and seated:
+        ordered = served_rows[0][1]
+        print(f"\n  Dine-in rate: {seated} sittings against {ordered} served at "
+              f"{served_rows[0][0].split(' (')[0]}")
+        if ordered:
+            print(f"    -> roughly {min(seated/ordered, 1.0)*100:.0f}% of customers "
+                  f"sat down; the rest took it away.")
+        print("    Both numbers are occupancy spells, so neither depends on tracking")
+        print("    a person from the counter to a seat - which is what we cannot do.")
+        summary["dine_in_sittings"] = seated
+        summary["ordered_events"] = ordered
+
     # (b) The direct answer: what a person did straight after walking in. Only
     #     tracks that survive from the door to their destination qualify, and
     #     ByteTrack drops a lot of them behind the booth, so the sample is small
@@ -492,12 +612,31 @@ def export_events(results: list[CameraResult], out_dir: Path, summary: dict) -> 
             for t, v in r.occupancy_series:
                 f.write(f"{r.name},{t:.0f},{v:.2f}\n")
 
+    # stop coordinates, so "where do people wait" can be answered off-polygon
     with (out_dir / "stop_events.csv").open("w", encoding="utf-8") as f:
-        f.write("camera,track_id,zone_id,start_s,duration_s\n")
+        f.write("camera,track_id,zone_id,start_s,duration_s,x,y\n")
         for r in results:
             for s in r.stops:
                 f.write(f"{r.name},{s.track_id},{s.zone_id},{s.start_t:.2f},"
-                        f"{s.duration:.2f}\n")
+                        f"{s.duration:.2f},{s.x:.1f},{s.y:.1f}\n")
+
+    # the per-frame headcount per zone: the source every fragmentation-immune
+    # metric is derived from, exported so it can be re-analysed without re-running
+    with (out_dir / "zone_occupancy.csv").open("w", encoding="utf-8") as f:
+        f.write("camera,zone_id,t_s,people\n")
+        for r in results:
+            for zid, series in r.zone_raw_series.items():
+                for t, c in series:
+                    f.write(f"{r.name},{zid},{t:.2f},{c}\n")
+
+    with (out_dir / "occupancy_events.csv").open("w", encoding="utf-8") as f:
+        f.write("camera,zone_id,zone_type,start_s,end_s,duration_s,party_size,peak\n")
+        for r in results:
+            kinds = {z.id: z.type for z in r.zones}
+            for e in r.occupancy_events:
+                f.write(f"{r.name},{e.zone_id},{kinds.get(e.zone_id,'other')},"
+                        f"{e.start_t:.2f},{e.end_t:.2f},{e.duration:.2f},"
+                        f"{e.size},{e.peak}\n")
 
     (out_dir / "summary.json").write_text(
         json.dumps({

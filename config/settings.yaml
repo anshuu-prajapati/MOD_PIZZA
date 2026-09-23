@@ -11,7 +11,9 @@ model:
   tracker: bytetrack.yaml      # appearance-free tracker -> no identity, by design
 
 processing:
-  sample_fps: 3                # frames analysed per second of footage
+  sample_fps: 6                # frames analysed per second of footage. Higher =
+                               # fewer broken tracks. The full hour x 3 cameras
+                               # runs in ~25 min at 3 fps, ~50 min at 6 fps.
   max_minutes: null            # null = whole file; e.g. 5 = first 5 minutes only
   display: true                # show the live annotated window
   display_scale: 0.6           # window size relative to source resolution
@@ -29,6 +31,21 @@ analytics:
   revisit_gap_seconds: 45.0    # leave a zone and come back after this = a revisit
   reentry_gap_seconds: 60.0    # leave and re-cross the door after this = a re-entry
   occupancy_bin_seconds: 60    # resolution of the busy/quiet timeline
+
+  # How long a zone must read EMPTY before an occupancy spell is treated as over.
+  # This is what makes party size and customers-served immune to track breakage:
+  # the metric is built on the per-frame headcount in the polygon, never on who
+  # the tracker thinks each person is.
+  occupancy_event_gap_seconds:
+    table: 15.0                # a seated person can be occluded for a while
+    default: 3.0               # a register turns over in ~12s - bridge briefly
+
+  # A popular table never actually reads empty between parties, so a spell would
+  # otherwise run for the whole hour. A sustained dip to `floor` people is taken
+  # as one party leaving and the next sitting down.
+  party_split:
+    floor: 1                   # "cleared" means down to this many people
+    seconds: 15.0              # ...and it has to stay that low this long
   busy_thresholds:             # store-wide occupancy bands. Tuned against the
     empty: 1                   #   18:00-19:00 dinner footage, where this store
     quiet: 8                   #   runs 20-27 people. Retune for other dayparts.

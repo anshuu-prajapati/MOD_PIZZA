@@ -16,6 +16,7 @@ import cv2
 
 from src.config import ROOT, load_settings
 from src.detector import PersonTracker
+from src.heatmap import write_stop_heatmaps
 from src.pipeline import run_camera
 from src.report import export_events, print_report
 
@@ -118,6 +119,8 @@ def main() -> int:
     summary = print_report(results, settings)
     if settings.output.get("write_events", True):
         export_events(results, out_dir, summary)
+        for path in write_stop_heatmaps(results, settings.cameras, out_dir):
+            print(f" Waiting heatmap: {path}")
     return 0
 
 

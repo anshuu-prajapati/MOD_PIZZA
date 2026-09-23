@@ -32,16 +32,56 @@ process exits. Nothing that could identify a person is computed or stored.
 
 ---
 
+## How the numbers are counted (read this first)
+
+Tracking is appearance-free, so a person who walks behind a booth and reappears
+becomes a **new track ID**. In the supplied hour the Front Entrance camera
+produced 1130 tracks for perhaps 130 real people. Any metric built on track
+identity inherits that error.
+
+So the headline metrics are not built on track identity. They are built on the
+**per-frame headcount inside each zone polygon**, and on the *spells* of that
+count being non-zero:
+
+| Metric | Counted as | Survives fragmentation |
+|---|---|---|
+| Customers served | 0 → occupied spells at the register / make line | Yes |
+| Parties seated | 0 → occupied spells on a table zone | Yes |
+| Party size | the headcount that spell held longest | Yes |
+| Table turnover | number of spells per table | Yes |
+| Dwell | spell duration | Yes |
+| Queue depth, occupancy | the per-frame count itself | Yes |
+| Movement paths, re-entry | track identity — **directional only** | No |
+
+A synthetic check in which every ID is deliberately reassigned every two seconds
+turns **463 shredded tracks into 5 correct events**: a party of four (held
+correctly through one member getting up), a pair after them, and three separate
+register customers five seconds apart. That is the property the design is for.
+
+`analytics.occupancy_event_gap_seconds` controls how long a zone must read empty
+before a spell is over. Tables get 15s, because a seated person gets occluded;
+counters get 3s, because a register turns over in about twelve seconds and a
+longer bridge would merge two customers into one.
+
+A busy table never actually reads empty between parties, so a spell would
+otherwise run for the whole hour and report one "sitting" where there were
+thirty. `analytics.party_split` cuts a spell wherever the headcount dips to the
+clearing floor and stays there — one party leaving, the next sitting down. A
+spell whose peak never exceeds that floor (a lone diner, one customer at a
+register) is left whole.
+
+---
+
 ## Project purpose
 
 Answer, from footage alone:
 
 | # | Question | Where it is answered |
 |---|---|---|
-| 1 | How many people are entering | Door line-crossing on Front Entrance |
+| 1 | How many people are entering | Served count at the register; door line for timing |
 | 2 | When the store is busy or empty | Per-minute occupancy timeline + busy bands |
 | 3 | How crowded the store is right now | Live occupancy at the last processed frame |
-| 4 | Which tables are used and for how long | Per-table zone dwell, sittings, utilisation |
+| 4 | Which tables are used, by how many, how long | Occupancy spells per table + party size |
 | 5 | How people move through the store | Zone-to-zone transition counts per camera |
 | 6 | Whether people appear to return | Within-session re-entry + in-store return trips |
 | 7 | Where people enter | Which door line fired + where tracks first appear |
@@ -74,6 +114,7 @@ MOD_PIZZA/
 │   ├── detector.py                YOLO person detection + ByteTrack
 │   ├── analytics.py               the metric engine (zones, dwell, flows)
 │   ├── overlay.py                 the live debug drawing
+│   ├── heatmap.py                 dwell-weighted map of where people stand still
 │   ├── pipeline.py                per-camera read → detect → analyse loop
 │   └── report.py                  terminal summary + CSV/JSON export
 │
@@ -162,7 +203,7 @@ Useful knobs in the same file:
 
 | Setting | Meaning |
 |---|---|
-| `processing.sample_fps` | frames analysed per second of footage (default 3) |
+| `processing.sample_fps` | frames analysed per second of footage (default 6) |
 | `processing.max_minutes` | `null` for the whole file, or a number to cut it short |
 | `processing.display` | `false` to run headless (much faster) |
 | `model.conf` | person-detection confidence threshold |
@@ -170,6 +211,7 @@ Useful knobs in the same file:
 | `analytics.table_seat_seconds` | how long in a table zone counts as a "sitting" |
 | `analytics.stop_speed_px_per_s` | below this speed a person counts as stopped |
 | `analytics.busy_thresholds` | the occupancy bands for EMPTY→PACKED |
+| `analytics.occupancy_event_gap_seconds` | how long a zone reads empty before a spell ends (per zone type) |
 
 ---
 
@@ -289,14 +331,15 @@ python main.py --check-zones                # just render the zone config
 While a window is open: `q` skips to the next camera, `Esc` stops everything
 and reports on what was processed, `space` pauses, `s` saves a snapshot.
 
-**Runtime.** At the default 3 fps sampling, one hour of footage is ~10,800
-frames per camera. Throughput depends almost entirely on how much power the GPU
+**Runtime.** At the default 6 fps sampling, one hour of footage is ~21,600
+frames per camera. Sampling was raised from 3 to 6 fps because it roughly halves
+track breakage, which is what damages journeys and party detection. Throughput depends almost entirely on how much power the GPU
 is allowed to draw:
 
 | Situation | Measured on an RTX 5050 laptop GPU | 1 hour x 3 cameras |
 |---|---|---|
-| GPU power-capped (Windows power-saver, on battery) | 2.5 frames/s | ~3.5 hours |
-| Same GPU unthrottled (plugged in, performance plan) | 14–20 frames/s | ~30 minutes |
+| GPU power-capped (Windows power-saver, on battery) | 1.4–2.5 frames/s | many hours |
+| Same GPU unthrottled (plugged in, performance plan) | 14–22 frames/s | ~50 minutes |
 | CPU only | well under 1 frame/s | overnight |
 
 That is a 7x difference from a Windows power setting alone. If a run feels far
@@ -416,7 +459,10 @@ real output from the shipped config on the supplied hour of footage
 | `zone_visits.csv` | camera, track_id, zone_id, enter_s, exit_s, dwell_s |
 | `line_events.csv` | camera, track_id, line_id, direction, t_s |
 | `occupancy_timeline.csv` | camera, bin_start_s, mean_people |
-| `stop_events.csv` | camera, track_id, zone_id, start_s, duration_s |
+| `stop_events.csv` | camera, track_id, zone_id, start_s, duration_s, **x, y** |
+| `zone_occupancy.csv` | camera, zone_id, t_s, people — the per-frame headcount |
+| `occupancy_events.csv` | camera, zone_id, zone_type, start_s, end_s, duration_s, party_size, peak |
+| `heatmap_waiting_<camera>.jpg` | dwell-weighted map of where people stand still |
 | `summary.json` | the headline numbers, machine-readable |
 | `terminal_report.txt` | the full terminal summary, saved verbatim |
 | `zones_<camera>.jpg` | the zone config rendered on a real frame |
